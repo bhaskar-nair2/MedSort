@@ -39,3 +39,4 @@ vaccine
 soluble
 apparatus
 protein
+dipropionate

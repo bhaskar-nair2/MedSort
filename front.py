@@ -4,7 +4,6 @@ from tkinter import ttk, Text, messagebox
 from openpyxl import Workbook, load_workbook
 import itertools
 import re
-import threading
 
 # GUI Initiators
 root = Tk()
@@ -21,9 +20,9 @@ IndenNameCol = StringVar(root, value='C')
 SrchNameCol = StringVar(root, value='D')
 NewValCol = StringVar(root, value='R')
 ValCol = StringVar(root, value='C')
-TotalEn = StringVar(root,value=271)
+TotalEn = StringVar(root, value=271)
 brute = IntVar()
-fnd=0
+fnd = 0
 
 trash = open('trash.txt', 'r').read().split("\n")
 contraVals = [['tab', 'tabs', 'inj', 'bottle', 'syp', 'bot', 'bott', 'cap', 'drops', 'needles', 'ointment'],
@@ -33,7 +32,7 @@ contraVals = [['tab', 'tabs', 'inj', 'bottle', 'syp', 'bot', 'bott', 'cap', 'dro
 # Status=(root,value='Demand.xlsx')
 
 # Classes
-class ValFound(Exception):
+class ProcessKilled(Exception):
     pass
 
 
@@ -83,16 +82,18 @@ def isSimilar(v1, v2, prog, brute):
                     if _.isalpha():
                         for p in b:
                             if _ == p and len(_) > 5:
-                                d = messagebox.askquestion('Please Help(' + str(prog) + "/"+str(TotalEn.get())+")","Is\n " + v1.upper() + "\nsimilar to\n" + v2.upper() + "\n Similar: " + _ + " : " + p + "\n [y/n]: ")
-                                if d == 'yes':
+                                d = messagebox.askyesnocancel('Please Help(' + str(prog) + "/" + str(TotalEn.get()) + ")",
+                                                           "Is\n " + v1.upper() + "\nsimilar to\n" + v2.upper() + "\n Similar: " +
+                                                           _ + " : " + p + "\n [y/n]: ")
+                                if d == True:
                                     return True
+                                elif d != False:
+                                    raise ProcessKilled
 
     return False
 
 
 def search():
-    thread = threading.Thread(pgbar.start(),args=(None,))
-    thread.start()
     # text.insert('end', Indfile.get()+"\n")
     wbList = load_workbook(Indfile.get())  # Demand Sheet
     wbSearch = load_workbook(SrchFile.get())  # Search Sheet
@@ -105,30 +106,34 @@ def search():
     for a, b in itertools.zip_longest(names, values):
         if a.value is None:
             break
-        for n in range(0, len(wbSearch.sheetnames)):
-            wbSearch._active_sheet_index = n
-            wsS = wbSearch.active
-            nmc = wsS[SrchNameCol.get()][2:]
-            valx = wsS[str(ValCol.get())][2:]
-            for x, y in itertools.zip_longest(nmc, valx):
-                if x.value is None:
+        try:
+            for n in range(0, len(wbSearch.sheetnames)):
+                wbSearch._active_sheet_index = n
+                wsS = wbSearch.active
+                nmc = wsS[SrchNameCol.get()][2:]
+                valx = wsS[str(ValCol.get())][2:]
+                for x, y in itertools.zip_longest(nmc, valx):
+                    if x.value is None:
+                        break
+                    elif isSimilar(x.value, a.value, prog, brute.get()):
+                        a.value=x.value
+                        b.value = y.value
+                        text.insert('end', "Found " + a.value + " at " + y.value + "\n\n")
+                        fnd = +1
+                    else:
+                        continue
                     break
-                elif isSimilar(x.value, a.value, prog, brute.get()):
-                    b.value = y.value
-                    text.insert('end', "Found " + a.value + " at " + y.value + "\n\n")
-                    fnd=+1
-                else:
-                    continue
-                break
+        except ProcessKilled:
+            text.insert('end',"ProcessKilled")
+            break
+
         prog += 1
     # pgbar.setV
     # pgbar.update()
-    text.insert('end', "Process Done!! Found: "+str(fnd)+" out of "+str(TotalEn.get())+" \n Please Wait, Saving..")
-    wbList.template=False
+    text.insert('end',"Process Done!! Found: " + str(fnd) + " out of " + str(TotalEn.get()) + " \n Please Wait, Saving..")
+    wbList.template = False
     wbList.save('Demand.xlsx')
     messagebox.showinfo("Done", "Operation Done")
-
-
 
 ttk.Entry(mainframe, width=70, textvariable=Indfile).grid(column=2, row=1, sticky=(W, E), columnspan=3, pady="10")
 ttk.Label(mainframe, text="Indent File ").grid(column=1, row=1, sticky=W)
@@ -160,11 +165,9 @@ ttk.Label(mainframe, text="Indent: Value Column ").grid(column=3, row=4, sticky=
 text = Text(mainframe, width=40, height=10)
 text.grid(column=1, row=7, sticky=(W, E), columnspan=4)
 
-pgbar = ttk.Progressbar(mainframe, orient="horizontal", mode="indeterminate")
-pgbar.grid(column=1, row=8, sticky=(W, E), columnspan=4)
+#pgbar = ttk.Progressbar(mainframe, orient="horizontal", mode="indeterminate")
+#pgbar.grid(column=1, row=8, sticky=(W, E), columnspan=4)
 
 ttk.Button(mainframe, text="Start", command=search).grid(column=2, row=6, sticky=N, columnspan=2)
-
-
 
 root.mainloop()
