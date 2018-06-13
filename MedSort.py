@@ -5,7 +5,6 @@ import threading
 import sqlite3 as sql
 import openpyxl as xl
 from scrollFrame import VerticalScrolledFrame as scrollFrame
-import time
 import re
 
 

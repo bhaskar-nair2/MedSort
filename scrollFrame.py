@@ -48,23 +48,3 @@ class VerticalScrolledFrame(Frame):
                 # update the inner frame's width to fill the canvas
                 canvas.itemconfigure(interior_id, width=canvas.winfo_width())
         canvas.bind('<Configure>', _configure_canvas)
-
-
-if __name__ == "__main__":
-
-    class SampleApp(Tk):
-        def __init__(self, *args, **kwargs):
-            root = Tk.__init__(self, *args, **kwargs)
-
-
-            self.frame = VerticalScrolledFrame(root)
-            self.frame.pack()
-            self.label = Label(text="Shrink the window to activate the scrollbar.")
-            self.label.pack()
-            buttons = []
-            for i in range(100):
-                buttons.append(Button(self.frame.interior, text="Button " + str(i)))
-                buttons[-1].pack()
-
-    app = SampleApp()
-    app.mainloop()
