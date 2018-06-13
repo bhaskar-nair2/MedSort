@@ -18,7 +18,6 @@ chloride
 fluoride
 phosphate
 without
-chloride
 ammonium
 citrate
 adrenaline

@@ -22,7 +22,6 @@ NewValCol = StringVar(root, value='R')
 ValCol = StringVar(root, value='C')
 TotalEn = StringVar(root, value=271)
 brute = IntVar()
-fnd = 0
 
 trash = open('trash.txt', 'r').read().split("\n")
 contraVals = [['tab', 'tabs', 'inj', 'bottle', 'syp', 'bot', 'bott', 'cap', 'drops', 'needles', 'ointment'],
@@ -64,7 +63,7 @@ def remove(val):
     return list(set(val) - set(trash))
 
 
-def isSimilar(v1, v2, prog, brute):
+def isSimilar(v1, v2, prog,brute):
     if v1.lower() == v2.lower():
         return True
     else:
@@ -82,9 +81,11 @@ def isSimilar(v1, v2, prog, brute):
                     if _.isalpha():
                         for p in b:
                             if _ == p and len(_) > 5:
-                                d = messagebox.askyesnocancel('Please Help(' + str(prog) + "/" + str(TotalEn.get()) + ")",
-                                                           "Is\n " + v1.upper() + "\nsimilar to\n" + v2.upper() + "\n Similar: " +
-                                                           _ + " : " + p + "\n [y/n]: ")
+                                d = messagebox.askyesnocancel(
+                                    'Please Help(' + str(prog) + "/" + str(TotalEn.get()) + ")",
+                                    "Is\n " + v1.upper() + "\nsimilar to\n" + v2.upper() + "\n Similar: " +
+                                    _ + " : " + p + "\n [y/n]: ")
+                                # TODO: Make the function to ask matching seperately
                                 if d == True:
                                     return True
                                 elif d != False:
@@ -102,7 +103,7 @@ def search():
     ws = wbList.active
     names = ws[IndenNameCol.get()][2:]
     values = ws[NewValCol.get()][2:]
-
+    fnd = 0
     for a, b in itertools.zip_longest(names, values):
         if a.value is None:
             break
@@ -116,24 +117,26 @@ def search():
                     if x.value is None:
                         break
                     elif isSimilar(x.value, a.value, prog, brute.get()):
-                        a.value=x.value
+                        fnd = +1
+                        a.value = x.value
                         b.value = y.value
                         text.insert('end', "Found " + a.value + " at " + y.value + "\n\n")
-                        fnd = +1
                     else:
                         continue
                     break
         except ProcessKilled:
-            text.insert('end',"ProcessKilled")
+            text.insert('end', "ProcessKilled")
             break
 
         prog += 1
     # pgbar.setV
     # pgbar.update()
-    text.insert('end',"Process Done!! Found: " + str(fnd) + " out of " + str(TotalEn.get()) + " \n Please Wait, Saving..")
+    text.insert('end',
+                "Process Done!! Found: " + str(fnd) + " out of " + str(TotalEn.get()) + " \n Please Wait, Saving..")
     wbList.template = False
     wbList.save('Demand.xlsx')
     messagebox.showinfo("Done", "Operation Done")
+
 
 ttk.Entry(mainframe, width=70, textvariable=Indfile).grid(column=2, row=1, sticky=(W, E), columnspan=3, pady="10")
 ttk.Label(mainframe, text="Indent File ").grid(column=1, row=1, sticky=W)
@@ -165,8 +168,8 @@ ttk.Label(mainframe, text="Indent: Value Column ").grid(column=3, row=4, sticky=
 text = Text(mainframe, width=40, height=10)
 text.grid(column=1, row=7, sticky=(W, E), columnspan=4)
 
-#pgbar = ttk.Progressbar(mainframe, orient="horizontal", mode="indeterminate")
-#pgbar.grid(column=1, row=8, sticky=(W, E), columnspan=4)
+# pgbar = ttk.Progressbar(mainframe, orient="horizontal", mode="indeterminate")
+# pgbar.grid(column=1, row=8, sticky=(W, E), columnspan=4)
 
 ttk.Button(mainframe, text="Start", command=search).grid(column=2, row=6, sticky=N, columnspan=2)
 
