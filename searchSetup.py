@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, Text
+from tkinter import ttk, messagebox, Text, filedialog
 import sqlite3 as sql
 from openpyxl import load_workbook as LoadBook
 import threading
@@ -27,6 +27,7 @@ class GUI:
         # components
         self.fname = ttk.Entry(mf, width=18, textvariable=self.Fnm)
         self.nmCol = ttk.Entry(mf, width=6, textvariable=self.Ncol)
+        self.fsch = ttk.Button(mf, text="Browse", command=lambda: self.getFile(), width=7)
         self.valCol = ttk.Entry(mf, width=6, textvariable=self.Vcol)
         self.PAC = ttk.Entry(mf, width=6, textvariable=self.PAcnt)
         self.but = ttk.Button(mf, text="Refresh", command=runCommand)
@@ -34,7 +35,8 @@ class GUI:
         self.log = Text(mf, width=40, height=10)
 
         # Design
-        self.fname.grid(column=2, row=1, pady=3, columnspan=5, sticky='we')
+        self.fname.grid(column=2, row=1, pady=3, columnspan=4, sticky='we')
+        self.fsch.grid(column=6, row=1, pady=3, columnspan=1)
         self.nmCol.grid(column=2, row=2, pady=3)
         self.valCol.grid(column=4, row=2, pady=3)
         self.PAC.grid(column=6, row=2, pady=3)
@@ -47,6 +49,15 @@ class GUI:
 
     def get(self):
         return [self.Fnm.get(), self.Ncol.get(), self.Vcol.get(), int(self.PAC.get())]
+
+    def getFile(self):
+        self.fname.delete(0, len(self.Fnm.get()))
+        fnm = filedialog.askopenfilename(filetypes=(("Microsoft Excel", "*.xlsx"),
+                                                    ("All files", "*.*")))
+        try:
+            self.fname.insert(0, fnm)
+        except:  # <- naked except is a bad idea
+           messagebox.showerror("Open Source File", "Failed to read file\n'%s'" % fnm)
 
 
 # Base process Class
@@ -64,7 +75,7 @@ class Proc:
     def refresh(self):
         self.butt['state'] = 'disabled'
         self.log.insert('end', "Process Started...\n")
-        self.conn = self.conDB('medSort')
+        self.conn = self.conDB('.\\DB\\medSort')
         self.cur = self.conn.cursor()
         try:
             dfile = LoadBook(self.Fnm)
@@ -90,7 +101,7 @@ class Proc:
                                 "Search Database Refreshed!!\n Updated " + str(self.cur.lastrowid) + " rows")
         except IOError as e:
             messagebox.showwarning('Error', 'File not found!')
-            self.log.insert('end','Please copy the required file to continue..')
+            self.log.insert('end', 'Please copy the required file to continue..')
         self.butt['state'] = 'enabled'
 
     def conDB(self, db):
