@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, Text
 import sqlite3 as sql
-import openpyxl as xl
+from openpyxl import load_workbook as LoadBook
 import threading
 
 
@@ -66,25 +66,31 @@ class Proc:
         self.log.insert('end', "Process Started...\n")
         self.conn = self.conDB('medSort')
         self.cur = self.conn.cursor()
-        dfile = xl.load_workbook(self.Fnm)
-        tblN = ['paSearchList', 'rcSearchList']
-        ct = 0
-        self.clearDB(tblN)
-        for sheet in range(0, len(dfile.sheetnames)):
-            self.log.insert('end', "\nWorking on datasheet: " + dfile.sheetnames[sheet])
-            self.pg['value'] = (sheet)
-            dfile._active_sheet_index = sheet
-            dsheet = dfile.active
-            if not sheet < self.PAcnt:
-                ct = 1
-            nameSet, descSet = dsheet[self.Ncol][1:], dsheet[self.Vcol][1:]
-            for nameData, valData in zip(nameSet, descSet):
-                if nameData.value is None:
-                    break
-                self.insertIn([valData.value, nameData.value], tblN[ct])
-        self.log.insert('end', "\nProcess Over...")
-        messagebox.showinfo("Process Done",
-                            "Search Database Refreshed!!\n Updated " + str(self.cur.lastrowid) + " rows")
+        try:
+            dfile = LoadBook(self.Fnm)
+            tblN = ['paSearchList', 'rcSearchList']
+            ct = 0
+            self.clearDB(tblN)
+            for sheet in range(0, len(dfile.sheetnames)):
+                self.log.insert('end', "\nWorking on datasheet: " + dfile.sheetnames[sheet])
+                self.log.yview_pickplace("end")
+                self.pg['value'] = (sheet)
+                dfile._active_sheet_index = sheet
+                dsheet = dfile.active
+                if not sheet < self.PAcnt:
+                    ct = 1
+                nameSet, descSet = dsheet[self.Ncol][1:], dsheet[self.Vcol][1:]
+                for nameData, valData in zip(nameSet, descSet):
+                    if nameData.value is None:
+                        break
+                    self.insertIn([valData.value, nameData.value], tblN[ct])
+            self.log.insert('end', "\nProcess Over...")
+            self.log.yview_pickplace("end")
+            messagebox.showinfo("Process Done",
+                                "Search Database Refreshed!!\n Updated " + str(self.cur.lastrowid) + " rows")
+        except IOError as e:
+            messagebox.showwarning('Error', 'File not found!')
+            self.log.insert('end','Please copy the required file to continue..')
         self.butt['state'] = 'enabled'
 
     def conDB(self, db):
