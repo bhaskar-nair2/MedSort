@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, Menu, messagebox
+from tkinter import ttk, Menu, messagebox,filedialog
 import searchSetup as ss
 import threading
 import sqlite3 as sql
@@ -55,6 +55,7 @@ class GUI:
 
         # Components
         self.IndFile = ttk.Entry(self.mainframe, width=70, textvariable=self.Fnm)
+        self.fsch = ttk.Button(self.mainframe, text="Browse", command=lambda: self.getFile(), width=7)
         self.NCol = ttk.Entry(self.mainframe, width=7, textvariable=self.Ncol)  # Make Sure you write NCol and not Ncol
         self.VCol = ttk.Entry(self.mainframe, width=7, textvariable=self.Vcol)
         self.tot = ttk.Entry(self.mainframe, width=7, textvariable=self.tots)
@@ -65,7 +66,8 @@ class GUI:
         self.pgbar = ttk.Progressbar(self.mainframe, orient="horizontal", mode="determinate")
 
         # Grid Style
-        self.IndFile.grid(column=2, row=1, sticky=(W, E), columnspan=3, pady="10")
+        self.IndFile.grid(column=2, row=1, sticky=(W, E), columnspan=2, pady="10")
+        self.fsch.grid(column=4, row=1, sticky=(W, E), columnspan=1, pady="10")
         self.NCol.grid(column=2, row=2, sticky=(W, E), columnspan=1, pady="10")
         self.VCol.grid(column=2, row=3, sticky=(W, E), pady="10")
         self.tot.grid(column=2, row=4, sticky=(W, E), pady="10")
@@ -139,6 +141,14 @@ class GUI:
         except IndexError:
             pass
 
+    def getFile(self):
+        self.IndFile.delete(0, len(self.Fnm.get()))
+        fnm = filedialog.askopenfilename(filetypes=(("Microsoft Excel", "*.xlsx"),
+                                                    ("All files", "*.*")))
+        try:
+            self.IndFile.insert(0, fnm)
+        except:  # <- naked except is a bad idea
+           messagebox.showerror("Open Source File", "Failed to read file\n'%s'" % fnm)
 
 
 
@@ -150,7 +160,7 @@ class Searcher:
         self.butt = but
         self.progg = prog
         self.text = text
-        self.db = 'medSort'
+        self.db = '.\\DB\\medSort'
 
         self.indFile = LoadBook(data[0])
         self.NCol = data[1]
