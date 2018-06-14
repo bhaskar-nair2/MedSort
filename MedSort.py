@@ -3,7 +3,7 @@ from tkinter import ttk, Menu, messagebox
 import searchSetup as ss
 import threading
 import sqlite3 as sql
-import openpyxl as xl
+from openpyxl import load_workbook as LoadBook
 from scrollFrame import VerticalScrolledFrame as scrollFrame
 import re
 
@@ -33,7 +33,7 @@ class GUI:
         # ChildFrame
         self.childFrame = scrollFrame(self.root)
         self.childFrame.grid(column=5, row=0, columnspan=4, sticky=(N, W, E, S))
-        self.childFrame.interior.grid_rowconfigure(0,weight=1)
+        self.childFrame.interior.grid_rowconfigure(0, weight=1)
         self.childFr = {}
         self.item = 0
 
@@ -75,6 +75,9 @@ class GUI:
         self.text.grid(column=1, row=7, sticky=(W, E), columnspan=4, pady="5")
         self.pgbar.grid(column=1, row=8, sticky=(W, E), columnspan=4, pady="5")
 
+        self.lsx = 'red'
+        self.color = ['red', 'blue']
+        self.co = 0
 
     def refresh(self):
         if __name__ == '__main__':
@@ -87,6 +90,10 @@ class GUI:
         self.root.destroy()
 
     def maketablet(self, bValue, cValue, indVal):
+        if not self.lsx == bValue:
+            self.co = 1 if self.co == 0 else 0
+            self.lsx = bValue
+
         wraplen = 300
         self.childFr[self.item] = tk.Frame(self.childFrame.interior, relief='sunken')
         id = self.item
@@ -94,19 +101,20 @@ class GUI:
         self.childFr[self.item].grid_columnconfigure(2, weight=1)
         self.childFr[self.item].grid_rowconfigure(2, weight=1)
         self.childFr[self.item].grid(column=1, sticky='n', padx='2', columnspan=3)
-        ttk.Label(self.childFr[self.item], text=(bValue).upper(), wraplength=wraplen).grid(row=1, columnspan=3)
+        ttk.Label(self.childFr[self.item], text=(cValue).upper(), wraplength=wraplen).grid(row=1, columnspan=3)
+        ttk.Label(self.childFr[self.item], text=(bValue+ "?").upper(), wraplength=wraplen, foreground=self.color[self.co]).grid(row=3,
+                                                                                                                 columnspan=3)
         ttk.Label(self.childFr[self.item], text="is similar to").grid(row=2, columnspan=3)
-        ttk.Label(self.childFr[self.item], text="At"+indVal,wraplength=wraplen).grid(row=4, columnspan=3)
+        ttk.Label(self.childFr[self.item], text="At" + indVal, wraplength=wraplen).grid(row=4, columnspan=3)
         self.childFr[self.item].btn = ttk.Button(self.childFr[self.item], text="Yes", command=lambda: self.putVals(id))
         self.childFr[self.item].btn.grid(row=5, columnspan=3)
-        ttk.Label(self.childFr[self.item], text=(cValue + "?").upper(), wraplength=wraplen).grid(row=3, columnspan=3)
         ttk.Separator(self.childFr[self.item], orient='horizontal').grid(row=6, columnspan=3, sticky='ew')
         self.item += 1
 
     def putVals(self, id):
         self.id = id
         dets = self.childFr[id].item
-        self.AddToList(dets,self.childFr[id].btn)
+        self.AddToList(dets, self.childFr[id].btn)
 
     def remWidget(self, id):
         list = self.childFr[id].grid_slaves()
@@ -114,8 +122,6 @@ class GUI:
             l.destroy()
             self.childFrame.interior.update()
             self.childFrame.update()
-
-
 
 
 class Searcher:
@@ -128,7 +134,7 @@ class Searcher:
         self.text = text
         self.db = 'medSort'
 
-        self.indFile = xl.load_workbook(data[0])
+        self.indFile = LoadBook(data[0])
         self.NCol = data[1]
         self.VCol = data[2]
         self.max = data[3]
@@ -149,11 +155,11 @@ class Searcher:
         # Start Search
         rcList = self.iniList(self.db, tbls[0])
         paList = self.iniList(self.db, tbls[1])
-        lists={0:rcList,1:paList}
+        lists = {0: rcList, 1: paList}
         for nameCell, valCell in zip(self.nameslst, self.vallst):
-            flag=False
+            flag = False
             name = nameCell.value
-            if name == None:
+            if name is None:
                 break
             for dets in rcList:
                 step = Searcher.isSimilar(name, dets[1])
@@ -178,12 +184,11 @@ class Searcher:
                         self.maketablet(name, dets[1], dets[0])
                         self.rCount += 1
 
-
             self.progg.step(1)
         # Search Over
         self.butt['state'] = 'enabled'
         self.text.insert('end', '\nFound: ' + str(self.FCount) + " of " + str(self.max))
-        self.text.insert('end', '\nReported: ' + str(self.rCount)+" possible similar values")
+        self.text.insert('end', '\nReported: ' + str(self.rCount) + " possible similar values")
         self.text.yview_pickplace("end")
         self.indFile.template = False
         while True:
@@ -198,9 +203,9 @@ class Searcher:
 
     @staticmethod
     def isSimilar(v1, v2):
-        if v1.lower() == v2.lower():
+        if v1.upper() == v2.upper():
             return 0
-        if v1.replace(' ','') == v2.replace(' ',''):
+        if v1.upper().replace(' ', '') == v2.upper().replace(' ', ''):
             return 0
         else:
             a = re.findall(r"[\w]+", v1.lower())
@@ -216,7 +221,6 @@ class Searcher:
                             if _ == p and len(_) > 5:
                                 # print(' '.join(a),' '.join(b))
                                 return 1
-                                # TODO: Make the function to ask matching seperately
         return 2
 
     @staticmethod
@@ -228,28 +232,28 @@ class Searcher:
         return cur.fetchall()
 
     def addToLst(self, dets):
-        print(dets[2],dets[1])
-        #Add to file
-        self.add=threading.Thread(target= lambda: self.SaveVals(dets[1],dets[2]))
+        print(dets[2], dets[1])
+        # Add to file
+        self.add = threading.Thread(target=lambda: self.SaveVals(dets[1], dets[2]))
         self.add.start()
-        #end
-        self.text.insert('end',"\n\n"+dets[1]+" Declared at-"+dets[2])
+        # end
+        self.text.insert('end', "\n\n" + dets[1] + " Declared at-" + dets[2])
         self.text.yview_pickplace("end")
-        self.FCount+=1
+        self.FCount += 1
         self.remWid(dets[0])
 
-    def SaveVals(self,name,value):
-       for namesCell,valCell in zip(self.nameslst, self.vallst):
-           if namesCell.value == name:
-               valCell.value = value
-               self.indFile.template = False
-               while True:
-                   try:
-                       self.indFile.save('Demand.xlsx')
-                       break
-                   except PermissionError:
-                       messagebox.showinfo("Permission Error!!",
-                                           "Please close any instances of the fileopen, and press OK")
+    def SaveVals(self, name, value):
+        for namesCell, valCell in zip(self.nameslst, self.vallst):
+            if namesCell.value == name:
+                valCell.value = value
+                self.indFile.template = False
+                while True:
+                    try:
+                        self.indFile.save('Demand.xlsx')
+                        break
+                    except PermissionError:
+                        messagebox.showinfo("Permission Error!!",
+                                            "Please close any instances of the fileopen, and press OK")
 
 
 class App:
@@ -258,13 +262,16 @@ class App:
         self.gui = GUI(self.master, self.runit, self.putVals)
 
     def runit(self):
-        self.search = Searcher(self.gui.childFrame.interior, self.gui.get(), self.gui.pgbar,
-                               self.gui.btn, self.gui.text, self.gui.maketablet, self.gui.remWidget)
-        self.thread1 = threading.Thread(target=self.search.startSearch)
-        self.thread1.start()
+        try:
+            self.search = Searcher(self.gui.childFrame.interior, self.gui.get(), self.gui.pgbar,
+                                   self.gui.btn, self.gui.text, self.gui.maketablet, self.gui.remWidget)
+            self.thread1 = threading.Thread(target=self.search.startSearch)
+            self.thread1.start()
+        except FileNotFoundError:
+            messagebox.showinfo('Error', 'File not Found')
 
-    def putVals(self, dets,but):
-        but['state']='disabled'
+    def putVals(self, dets, but):
+        but['state'] = 'disabled'
         self.thread2 = threading.Thread(target=lambda: self.search.addToLst(dets))
         self.thread2.start()
 
