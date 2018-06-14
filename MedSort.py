@@ -122,6 +122,24 @@ class GUI:
             l.destroy()
             self.childFrame.interior.update()
             self.childFrame.update()
+        nm= self.childFr[id].item[1]
+        self.childFr[id].item = []
+        try:
+            if self.childFr[id-1].item[1]==nm:
+                self.remWidget(id-1)
+        except KeyError:
+            pass
+        except IndexError:
+            pass
+        try:
+            if self.childFr[id+1].item[1]==nm:
+                self.remWidget(id+1)
+        except KeyError:
+            pass
+        except IndexError:
+            pass
+
+
 
 
 class Searcher:
