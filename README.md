@@ -1,2 +1,2 @@
 # MedSort
-A small program to manage medical indents
+A small python TKinter program to manage medical indents
