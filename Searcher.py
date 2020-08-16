@@ -1,10 +1,13 @@
 from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Font
+from openpyxl.utils.exceptions import InvalidFileException
 import sqlite3 as sql
 from re import sub
 from datetime import date
 import os
 import sys
+import subprocess
+
 
 class Searcher:
     def __init__(self, gui, put):
@@ -19,29 +22,54 @@ class Searcher:
         self.remWid = gui.remWidget
         self.db = db
         self.put = put
+        self.showError = gui.showError
 
         self.tbl_name = 'indentList'
         self.columns = ['Indent No', 'Contract No', "Nomenclature",
                         "Unit", "Company", "Rate", "Quantity", "Amount", "GST", "Total Amount", "Supplier", 'from_date', "to_date"]
 
-        self.file = load_workbook(self.data[0], data_only=True)
+        try:
+            self.file = load_workbook(self.data[0], data_only=True)
+        except InvalidFileException as e:
+            self.showError(
+                'File Error', "No file or File Format not supported (Only supports .xlsx files)")
+
         self.file_name = self.data[0].split('/')[-1].split('.')[0]
         self.NCol = self.data[1]
         self.VCol = self.data[2]
         self.progg["maximum"] = 100
 
     def orcestrator(self):
+        print('Start')
         try:
             con = sql.connect(db, isolation_level=None)
             self.cur = con.cursor()
         except sql.OperationalError as e:
+            self.gui.showError('SQL ERROR', e)
             print(self.__class__, f"Error {e}")
-        print("Start")
+        # DATA GEN
+        self.progg.step(1)
+        self.text.insert('end', "Started")
         self.data_gen()
+        self.text.insert('end', "\n" + "Data Generated")
+        # ADD FOUND
+        self.progg.step(10)
         self.add_found_results()
+        self.text.insert('end', "\n" + "Searching Done")
+        # SEARCH BY PRIMARY
+        self.progg.step(20)
         self.search_by_primary()
+        self.text.insert('end', "\n" + "Guessing ¯\_(ツ)_/¯")
+        # ADD NOT FOUND
+        self.progg.step(50)
         self.add_not_found()
-        return self.ret_file()
+        self.text.insert('end', "\n" + "Adding Not Found")
+        # RETURN FILE
+        self.progg.step(19)
+        self.ret_file()
+        self.text.insert(
+            'end', "\n\n" + f"Results File Created @{self.resultFilePath}")
+        self.open_file()
 
     def data_gen(self):
         flag = False
@@ -49,9 +77,9 @@ class Searcher:
         self.clear_db()
         self.file._active_sheet_index = 0
         sheet = self.file.active
-        indref_lst = sheet['A'][1:]
-        name_lst = sheet['B'][1:]
-        qty_lst = sheet['D'][1:]
+        indref_lst = sheet[self.data[1]][1:]
+        name_lst = sheet[self.data[2]][1:]
+        qty_lst = sheet[self.data[3]][1:]
         for _ in range(len(name_lst)):
             if _ % 50 == 0 or _ == len(name_lst):
                 self.put(f"Done about {round(_/len(name_lst)*50)}%")
@@ -115,11 +143,18 @@ class Searcher:
         # Create File
         filename = f"created{self.file_name}.xlsx"
         filepath = './outputs/' + filename
+        self.resultFilePath = filepath
         self.WB.save(filepath)
         self.put(f':{filepath}:')
         self.put('File Created!')
         print('Done')
         return filepath
+
+    def open_file(self):
+        try:
+            subprocess.run(self.resultFilePath, check=True)
+        except PermissionError as e:
+            print(f"Cant Open File {e}")
 
     def insert(self, values):
         que = f"insert into {self.tbl_name} (indref, name, alias, qty) values(?,?,?,?)"

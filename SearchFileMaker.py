@@ -12,29 +12,32 @@ class ReDataMaker:
         data = gui.get()
         file = data[0]
         self.file = load_workbook(file)
-
         self.pa_count = data[3]
-        # # self.status = queue
+        self.showError = gui.showError
+        self.text = gui.log
+        self.pgbar = gui.pgbar
 
     def refresh(self):
+        self.pgbar.step(1)
         print('Start')
         try:
             con = sql.connect(db, isolation_level=None)
             self.cur = con.cursor()
         except sql.OperationalError as e:
             print(f'Error in init: {e}')
-        # self.status.put(f"Refresh Starts!")
+        self.text.insert("end", "Refresh Starts!")
         tbl_set = 0
         self.clear_db()
         rcTab = False
         for sheet_index in range(0, len(self.file.sheetnames)):
             self.file._active_sheet_index = sheet_index
-            # self.status.put(
-            # f"Now Inserting {self.file.sheetnames[self.file._active_sheet_index]} into Database")
+            self.text.insert("end",
+                f"Now Inserting {self.file.sheetnames[self.file._active_sheet_index]} into Database")
             sheet = self.file.active
 
             if not sheet_index < self.pa_count[tbl_set]:
                 tbl_set += 1
+                self.pgbar.step(33)
                 print(tables, tbl_set)
                 if tbl_set == len(tables):
                     break
@@ -65,7 +68,7 @@ class ReDataMaker:
                     value.append(to_lst[_].value)
                     value.append(fr_lst[_].value)
                 self.insert(tables[tbl_set], value, rcTab)
-        # self.status.put('Refresh Done!!')
+        # self.text.insert.put('Refresh Done!!')
 
     def clear_db(self):
         try:

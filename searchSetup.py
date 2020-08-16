@@ -56,7 +56,7 @@ class GUI:
 
         self.but.grid(column=3, row=4, columnspan=2, sticky='we', pady=3)
         self.pgbar.grid(column=1, row=5, columnspan=6, sticky='we')
-        self.log.grid(column=1, row=6, columnspan=6, pady=4)
+        self.log.grid(column=1, row=6, columnspan=6, sticky='we')
 
     def refresh(self):
         pass
@@ -77,83 +77,12 @@ class GUI:
         try:
             self.fname.insert(0, fnm)
         except:  # <- naked except is a bad idea
-            messagebox.showerror("Open Source File",
+            self.showerror("Open Source File",
                                  "Failed to read file\n'%s'" % fnm)
 
+    def showError(self, title="Error", message="Some error Occoured"):
+        messagebox.showerror(title, message)
 
-# Base process Class
-class Proc:
-    def __init__(self, dets, pgbar, but, log):
-        self.Fnm = dets[0]
-        self.Ncol = dets[1]
-        self.Vcol = dets[2]
-        self.PAcnt = dets[3]
-        self.pg = pgbar
-        self.pg["maximum"] = self.PAcnt
-        self.butt = but
-        self.log = log
-
-    def refresh(self):
-        self.butt['state'] = 'disabled'
-        self.log.insert('end', "Process Started...\n")
-        self.conn = self.conDB('.\\DB\\medSort')
-        self.cur = self.conn.cursor()
-        try:
-            dfile = LoadBook(self.Fnm)
-            tblN = ['paSearchList', 'rcSearchList']
-            ct = 0
-            self.clearDB(tblN)
-            for sheet in range(0, len(dfile.sheetnames)):
-                self.log.insert(
-                    'end', "\nWorking on datasheet: " + dfile.sheetnames[sheet])
-                self.log.yview_pickplace("end")
-                self.pg['value'] = (sheet)
-                dfile._active_sheet_index = sheet
-                dsheet = dfile.active
-                if not sheet < self.PAcnt:
-                    ct = 1
-                nameSet, descSet = dsheet[self.Ncol][1:], dsheet[self.Vcol][1:]
-                for nameData, valData in zip(nameSet, descSet):
-                    if nameData.value is None:
-                        break
-                    self.insertIn([valData.value, nameData.value], tblN[ct])
-            self.log.insert('end', "\nProcess Over...")
-            self.log.yview_pickplace("end")
-            messagebox.showinfo("Process Done",
-                                "Search Database Refreshed!!\n Updated " + str(self.cur.lastrowid) + " rows")
-        except IOError as e:
-            messagebox.showwarning('Error', 'File not found!')
-            self.log.insert(
-                'end', 'Please copy the required file to continue..')
-        self.butt['state'] = 'enabled'
-
-    def conDB(self, db):
-        try:
-            con = sql.connect(db, isolation_level=None)
-            return con
-        except sql.OperationalError:
-            print('Operational Error,database not found')
-            return None
-            pass
-
-    def clearDB(self, tbl):
-        try:
-            for _ in tbl:
-                que = "Delete from " + tbl[0]
-                self.cur.execute(que)
-        except sql.OperationalError:
-            pass
-
-    def insertIn(self, values, tbl):
-        try:
-            que = "insert into " + tbl + " (contract, name) values (?,?)"
-            self.cur.execute(que, values)
-        except sql.OperationalError:
-            que = "create table " + tbl + \
-                " (contract varchar(200), name varchar(200))"
-            self.cur.execute(que)
-            que = "insert into " + tbl + " (contract, name) values (?,?)"
-            self.cur.execute(que, values)
 
 
 # Base Application Class

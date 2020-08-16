@@ -7,6 +7,8 @@ from scrollFrame import VerticalScrolledFrame as scrollFrame
 import re
 from Searcher import Searcher
 
+from pathlib import Path
+
 
 class GUI:
     def __init__(self, master, runcommand, AddToList):
@@ -46,19 +48,20 @@ class GUI:
         self.newFrame.grid(column=6, row=7)
 
         # Global Variables
-        self.Fnm = tk.StringVar(self.root, "Demand.xlsx")
-        self.Ncol = tk.StringVar(self.root, "C")
-        self.Vcol = tk.StringVar(self.root, "R")
-        self.tots = tk.IntVar(self.root, 200)
+        self.Fnm = tk.StringVar(
+            self.root, "/home/bhaskar/Documents/websort/MedSort/data/INDENT NO 60 SORT.xlsx")
+        self.IndentCol = tk.StringVar(self.root, "A")
+        self.NameCol = tk.StringVar(self.root, "B")
+        self.QuantityCol = tk.IntVar(self.root, "D")
 
         # Labels
         ttk.Label(self.mainframe, text="Indent File ").grid(
             column=1, row=1, sticky=W)
-        ttk.Label(self.mainframe, text="Indent: Name Column ").grid(
+        ttk.Label(self.mainframe, text="Indent Number Column").grid(
             column=1, row=2, sticky=W)
-        ttk.Label(self.mainframe, text="Indent: Edit Column ").grid(
+        ttk.Label(self.mainframe, text="Name Column").grid(
             column=1, row=3, sticky=W)
-        ttk.Label(self.mainframe, text="Total Values").grid(
+        ttk.Label(self.mainframe, text="Quantity Column").grid(
             column=1, row=4, sticky=W)
 
         # Components
@@ -66,14 +69,18 @@ class GUI:
             self.mainframe, width=70, textvariable=self.Fnm)
         self.fsch = ttk.Button(self.mainframe, text="Browse",
                                command=lambda: self.getFile(), width=7)
-        # Make Sure you write NCol and not Ncol
-        self.NCol = ttk.Entry(self.mainframe, width=7, textvariable=self.Ncol)
-        self.VCol = ttk.Entry(self.mainframe, width=7, textvariable=self.Vcol)
-        self.tot = ttk.Entry(self.mainframe, width=7, textvariable=self.tots)
+        # Make Sure you write IndentCol and not Indentcol
+        self.IField = ttk.Entry(self.mainframe, width=7,
+                                textvariable=self.IndentCol)
+        self.NField = ttk.Entry(self.mainframe, width=7,
+                                textvariable=self.NameCol)
+        self.QField = ttk.Entry(self.mainframe, width=7,
+                                textvariable=self.QuantityCol)
+
         self.sep = ttk.Separator(self.mainframe, orient='horizontal')
         self.btn = ttk.Button(self.mainframe, text="Start", command=runcommand)
-        self.Chk = ttk.Checkbutton(
-            self.mainframe, text="Human Check?", onvalue=0, offvalue=1)
+        # self.Chk = ttk.Checkbutton(
+        #     self.mainframe, text="Human Check?", onvalue=0, offvalue=1)
         self.text = tk.Text(self.mainframe, width=40, height=10)
         self.pgbar = ttk.Progressbar(
             self.mainframe, orient="horizontal", mode="determinate")
@@ -82,12 +89,13 @@ class GUI:
         self.IndFile.grid(column=2, row=1, sticky=(W, E),
                           columnspan=2, pady="10")
         self.fsch.grid(column=4, row=1, sticky=(W, E), columnspan=1, pady="10")
-        self.NCol.grid(column=2, row=2, sticky=(W, E), columnspan=1, pady="10")
-        self.VCol.grid(column=2, row=3, sticky=(W, E), pady="10")
-        self.tot.grid(column=2, row=4, sticky=(W, E), pady="10")
+        self.IField.grid(column=2, row=2, sticky=(
+            W, E), columnspan=1, pady="10")
+        self.NField.grid(column=2, row=3, sticky=(W, E), pady="10")
+        self.QField.grid(column=2, row=4, sticky=(W, E), pady="10")
         self.sep.grid(column=1, row=5, columnspan=4, sticky='ew', pady="5")
         self.btn.grid(column=2, row=6, sticky=N, columnspan=2, pady="5")
-        self.Chk.grid(column=4, row=6, sticky=E, pady="5")
+        # self.Chk.grid(column=4, row=6, sticky=E, pady="5")
         self.text.grid(column=1, row=7, sticky=(W, E), columnspan=4, pady="5")
         self.pgbar.grid(column=1, row=8, sticky=(W, E), columnspan=4, pady="5")
 
@@ -100,7 +108,7 @@ class GUI:
             self.re.main()
 
     def get(self):
-        return [self.IndFile.get(), self.NCol.get(), self.VCol.get(), self.tot.get()]
+        return [self.IndFile.get(), self.IField.get(), self.NField.get(), self.QField.get()]
 
     def destroy(self):
         self.root.destroy()
@@ -169,12 +177,17 @@ class GUI:
         try:
             self.IndFile.insert(0, fnm)
         except:  # <- naked except is a bad idea
-            messagebox.showerror("Open Source File",
-                                 "Failed to read file\n'%s'" % fnm)
+            showError("Open Source File",
+                      "Failed to read file\n'%s'" % fnm)
+
+    def showError(self, title="Error", message="Some error Occoured"):
+        messagebox.showerror(title, message)
 
 
 class App:
     def __init__(self, master):
+        Path("./DB").mkdir(parents=True, exist_ok=True)
+        Path("./outputs").mkdir(parents=True, exist_ok=True)
         self.master = master
         self.gui = GUI(self.master, self.runit, self.put)
 
