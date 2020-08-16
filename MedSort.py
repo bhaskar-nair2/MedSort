@@ -1,11 +1,11 @@
 import tkinter as tk
-from tkinter import ttk, Menu, messagebox,filedialog
+from tkinter import ttk, Menu, messagebox, filedialog
 import searchSetup as ss
 import threading
-import sqlite3 as sql
-from openpyxl import load_workbook as LoadBook
+
 from scrollFrame import VerticalScrolledFrame as scrollFrame
 import re
+from Searcher import Searcher
 
 
 class GUI:
@@ -19,26 +19,30 @@ class GUI:
         self.menubar = Menu(self.root)
         self.root.config(menu=self.menubar)
         self.fileMenu = Menu(self.menubar)
-        self.fileMenu.add_command(label='Refresh', command=self.refresh)
+        self.fileMenu.add_command(
+            label='Refresh Search List', command=self.refresh)
         self.fileMenu.add_command(label='Exit', command=self.destroy)
         self.menubar.add_cascade(label="File", menu=self.fileMenu)
         self.AddToList = AddToList
 
         # MainFrame
-        self.mainframe = ttk.Frame(self.root, padding="10 10 12 12", relief='groove')
+        self.mainframe = ttk.Frame(
+            self.root, padding="10 10 12 12", relief='groove')
         self.mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
         self.mainframe.columnconfigure(0, weight=1)
         self.mainframe.rowconfigure(0, weight=1)
 
         # ChildFrame
         self.childFrame = scrollFrame(self.root)
-        self.childFrame.grid(column=5, row=0, columnspan=4, sticky=(N, W, E, S))
+        self.childFrame.grid(
+            column=5, row=0, columnspan=4, sticky=(N, W, E, S))
         self.childFrame.interior.grid_rowconfigure(0, weight=1)
         self.childFr = {}
         self.item = 0
 
         # newFrame
-        self.newFrame = ttk.Frame(self.root, padding="10 10 12 12", relief='raised')
+        self.newFrame = ttk.Frame(
+            self.root, padding="10 10 12 12", relief='raised')
         self.newFrame.grid(column=6, row=7)
 
         # Global Variables
@@ -48,25 +52,35 @@ class GUI:
         self.tots = tk.IntVar(self.root, 200)
 
         # Labels
-        ttk.Label(self.mainframe, text="Indent File ").grid(column=1, row=1, sticky=W)
-        ttk.Label(self.mainframe, text="Indent: Name Column ").grid(column=1, row=2, sticky=W)
-        ttk.Label(self.mainframe, text="Indent: Edit Column ").grid(column=1, row=3, sticky=W)
-        ttk.Label(self.mainframe, text="Total Values").grid(column=1, row=4, sticky=W)
+        ttk.Label(self.mainframe, text="Indent File ").grid(
+            column=1, row=1, sticky=W)
+        ttk.Label(self.mainframe, text="Indent: Name Column ").grid(
+            column=1, row=2, sticky=W)
+        ttk.Label(self.mainframe, text="Indent: Edit Column ").grid(
+            column=1, row=3, sticky=W)
+        ttk.Label(self.mainframe, text="Total Values").grid(
+            column=1, row=4, sticky=W)
 
         # Components
-        self.IndFile = ttk.Entry(self.mainframe, width=70, textvariable=self.Fnm)
-        self.fsch = ttk.Button(self.mainframe, text="Browse", command=lambda: self.getFile(), width=7)
-        self.NCol = ttk.Entry(self.mainframe, width=7, textvariable=self.Ncol)  # Make Sure you write NCol and not Ncol
+        self.IndFile = ttk.Entry(
+            self.mainframe, width=70, textvariable=self.Fnm)
+        self.fsch = ttk.Button(self.mainframe, text="Browse",
+                               command=lambda: self.getFile(), width=7)
+        # Make Sure you write NCol and not Ncol
+        self.NCol = ttk.Entry(self.mainframe, width=7, textvariable=self.Ncol)
         self.VCol = ttk.Entry(self.mainframe, width=7, textvariable=self.Vcol)
         self.tot = ttk.Entry(self.mainframe, width=7, textvariable=self.tots)
         self.sep = ttk.Separator(self.mainframe, orient='horizontal')
         self.btn = ttk.Button(self.mainframe, text="Start", command=runcommand)
-        self.Chk = ttk.Checkbutton(self.mainframe, text="Human Check?", onvalue=0, offvalue=1)
+        self.Chk = ttk.Checkbutton(
+            self.mainframe, text="Human Check?", onvalue=0, offvalue=1)
         self.text = tk.Text(self.mainframe, width=40, height=10)
-        self.pgbar = ttk.Progressbar(self.mainframe, orient="horizontal", mode="determinate")
+        self.pgbar = ttk.Progressbar(
+            self.mainframe, orient="horizontal", mode="determinate")
 
         # Grid Style
-        self.IndFile.grid(column=2, row=1, sticky=(W, E), columnspan=2, pady="10")
+        self.IndFile.grid(column=2, row=1, sticky=(W, E),
+                          columnspan=2, pady="10")
         self.fsch.grid(column=4, row=1, sticky=(W, E), columnspan=1, pady="10")
         self.NCol.grid(column=2, row=2, sticky=(W, E), columnspan=1, pady="10")
         self.VCol.grid(column=2, row=3, sticky=(W, E), pady="10")
@@ -97,20 +111,27 @@ class GUI:
             self.lsx = bValue
 
         wraplen = 300
-        self.childFr[self.item] = tk.Frame(self.childFrame.interior, relief='sunken')
+        self.childFr[self.item] = tk.Frame(
+            self.childFrame.interior, relief='sunken')
         id = self.item
         self.childFr[self.item].item = [id, bValue, indVal]
         self.childFr[self.item].grid_columnconfigure(2, weight=1)
         self.childFr[self.item].grid_rowconfigure(2, weight=1)
-        self.childFr[self.item].grid(column=1, sticky='n', padx='2', columnspan=3)
-        ttk.Label(self.childFr[self.item], text=(cValue).upper(), wraplength=wraplen).grid(row=1, columnspan=3)
-        ttk.Label(self.childFr[self.item], text=(bValue+ "?").upper(), wraplength=wraplen, foreground=self.color[self.co]).grid(row=3,
-                                                                                                                 columnspan=3)
-        ttk.Label(self.childFr[self.item], text="is similar to").grid(row=2, columnspan=3)
-        ttk.Label(self.childFr[self.item], text="At" + indVal, wraplength=wraplen).grid(row=4, columnspan=3)
-        self.childFr[self.item].btn = ttk.Button(self.childFr[self.item], text="Yes", command=lambda: self.putVals(id))
+        self.childFr[self.item].grid(
+            column=1, sticky='n', padx='2', columnspan=3)
+        ttk.Label(self.childFr[self.item], text=(
+            cValue).upper(), wraplength=wraplen).grid(row=1, columnspan=3)
+        ttk.Label(self.childFr[self.item], text=(bValue + "?").upper(), wraplength=wraplen, foreground=self.color[self.co]).grid(row=3,
+                                                                                                                                 columnspan=3)
+        ttk.Label(self.childFr[self.item], text="is similar to").grid(
+            row=2, columnspan=3)
+        ttk.Label(self.childFr[self.item], text="At" + indVal,
+                  wraplength=wraplen).grid(row=4, columnspan=3)
+        self.childFr[self.item].btn = ttk.Button(
+            self.childFr[self.item], text="Yes", command=lambda: self.putVals(id))
         self.childFr[self.item].btn.grid(row=5, columnspan=3)
-        ttk.Separator(self.childFr[self.item], orient='horizontal').grid(row=6, columnspan=3, sticky='ew')
+        ttk.Separator(self.childFr[self.item], orient='horizontal').grid(
+            row=6, columnspan=3, sticky='ew')
         self.item += 1
 
     def putVals(self, id):
@@ -124,17 +145,17 @@ class GUI:
             l.destroy()
             self.childFrame.interior.update()
             self.childFrame.update()
-        nm= self.childFr[id].item[1]
+        nm = self.childFr[id].item[1]
         self.childFr[id].item = []
         try:
-            if self.childFr[id-1].item[1]==nm:
+            if self.childFr[id-1].item[1] == nm:
                 self.remWidget(id-1)
         except KeyError:
             pass
         except IndexError:
             pass
         try:
-            if self.childFr[id+1].item[1]==nm:
+            if self.childFr[id+1].item[1] == nm:
                 self.remWidget(id+1)
         except KeyError:
             pass
@@ -148,160 +169,28 @@ class GUI:
         try:
             self.IndFile.insert(0, fnm)
         except:  # <- naked except is a bad idea
-           messagebox.showerror("Open Source File", "Failed to read file\n'%s'" % fnm)
-
-
-
-class Searcher:
-    def __init__(self, frame, data, prog, but, text, maketablet, remWid):
-        self.frame = frame
-        self.childFr = {}
-        self.item = 0
-        self.butt = but
-        self.progg = prog
-        self.text = text
-        self.db = '.\\DB\\medSort'
-
-        self.indFile = LoadBook(data[0])
-        self.NCol = data[1]
-        self.VCol = data[2]
-        self.max = data[3]
-        self.progg["maximum"] = self.max
-        self.maketablet = maketablet
-        self.remWid = remWid
-        self.FCount = 0
-        self.rCount = 0
-
-        self.Fdata = self.indFile.active
-        self.nameslst = self.Fdata[self.NCol][1:]
-        self.vallst = self.Fdata[self.VCol][1:]
-
-    def startSearch(self):
-        self.text.insert("end", "Process Started...\n")
-        tbls = ['rcSearchList', 'paSearchList']
-        self.butt['state'] = 'disabled'
-        # Start Search
-        rcList = self.iniList(self.db, tbls[0])
-        paList = self.iniList(self.db, tbls[1])
-        lists = {0: rcList, 1: paList}
-        for nameCell, valCell in zip(self.nameslst, self.vallst):
-            flag = False
-            name = nameCell.value
-            if name is None:
-                break
-            for dets in rcList:
-                step = Searcher.isSimilar(name, dets[1])
-                if step == 0:  #
-                    valCell.value = dets[0]
-                    self.text.insert('end', "Found " + name + " at " + dets[0] + "\n\n")
-                    self.text.yview_pickplace("end")
-                    self.FCount += 1
-                    flag = True
-                elif step == 1:  # Make Tablet
-                    self.maketablet(name, dets[1], dets[0])
-                    self.rCount += 1
-            if not flag:
-                for dets in paList:
-                    step = Searcher.isSimilar(name, dets[1])
-                    if step == 0:  #
-                        valCell.value = dets[0]
-                        self.text.insert('end', "Found " + name + " at " + dets[0] + "\n\n")
-                        self.text.yview_pickplace("end")
-                        self.FCount += 1
-                    elif step == 1:  # Make Tablet
-                        self.maketablet(name, dets[1], dets[0])
-                        self.rCount += 1
-
-            self.progg.step(1)
-        # Search Over
-        self.butt['state'] = 'enabled'
-        self.text.insert('end', '\nFound: ' + str(self.FCount) + " of " + str(self.max))
-        self.text.insert('end', '\nReported: ' + str(self.rCount) + " possible similar values")
-        self.text.yview_pickplace("end")
-        self.indFile.template = False
-        while True:
-            try:
-                self.indFile.save('Demand.xlsx')
-                break
-            except PermissionError:
-                messagebox.showinfo("Permission Error!!", "Please close any instances of the fileopen, and press OK")
-        messagebox.showinfo("Process Done", "Computational Search Over!\nPlease check values Manually")
-        self.text.insert("end", "\nProcess Over...\n")
-        self.text.yview_pickplace("end")
-
-    @staticmethod
-    def isSimilar(v1, v2):
-        if v1.upper() == v2.upper():
-            return 0
-        if v1.upper().replace(' ', '') == v2.upper().replace(' ', ''):
-            return 0
-        else:
-            a = re.findall(r"[\w]+", v1.lower())
-            b = re.findall(r"[\w]+", v2.lower())
-            a = list(set(a) - set(trash))
-            b = list(set(b) - set(trash))
-            if a == b:
-                return 0
-            else:
-                for _ in a[1:len(a) - 2]:
-                    if _.isalpha():
-                        for p in b:
-                            if _ == p and len(_) > 5:
-                                # print(' '.join(a),' '.join(b))
-                                return 1
-        return 2
-
-    @staticmethod
-    def iniList(db, tbl):
-        con = sql.connect(db)
-        cur = con.cursor()
-        que = "select * from " + tbl
-        cur.execute(que)
-        return cur.fetchall()
-
-    def addToLst(self, dets):
-        print(dets[2], dets[1])
-        # Add to file
-        self.add = threading.Thread(target=lambda: self.SaveVals(dets[1], dets[2]))
-        self.add.start()
-        # end
-        self.text.insert('end', "\n\n" + dets[1] + " Declared at-" + dets[2])
-        self.text.yview_pickplace("end")
-        self.FCount += 1
-        self.remWid(dets[0])
-
-    def SaveVals(self, name, value):
-        for namesCell, valCell in zip(self.nameslst, self.vallst):
-            if namesCell.value == name:
-                valCell.value = value
-                self.indFile.template = False
-                while True:
-                    try:
-                        self.indFile.save('Demand.xlsx')
-                        break
-                    except PermissionError:
-                        messagebox.showinfo("Permission Error!!",
-                                            "Please close any instances of the fileopen, and press OK")
+            messagebox.showerror("Open Source File",
+                                 "Failed to read file\n'%s'" % fnm)
 
 
 class App:
     def __init__(self, master):
         self.master = master
-        self.gui = GUI(self.master, self.runit, self.putVals)
+        self.gui = GUI(self.master, self.runit, self.put)
 
     def runit(self):
         try:
-            self.search = Searcher(self.gui.childFrame.interior, self.gui.get(), self.gui.pgbar,
-                                   self.gui.btn, self.gui.text, self.gui.maketablet, self.gui.remWidget)
-            self.thread1 = threading.Thread(target=self.search.startSearch)
+            self.search = Searcher(self.gui, self.put)
+            self.thread1 = threading.Thread(target=self.search.orcestrator)
             self.thread1.start()
         except FileNotFoundError:
             messagebox.showinfo('Error', 'File not Found')
 
-    def putVals(self, dets, but):
-        but['state'] = 'disabled'
-        self.thread2 = threading.Thread(target=lambda: self.search.addToLst(dets))
-        self.thread2.start()
+    def put(self, dets):
+        self.gui.btn['state'] = 'disabled'
+        # self.thread2 = threading.Thread(
+        #     target=lambda: self.search.addToLst(dets))
+        # self.thread2.start()
 
 
 def main():

@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox, Text, filedialog
 import sqlite3 as sql
 from openpyxl import load_workbook as LoadBook
 import threading
+from SearchFileMaker import ReDataMaker
 
 
 # base GUI Class
@@ -14,24 +15,34 @@ class GUI:
         mf.rowconfigure(0, weight=1)
 
         # Global Values
-        self.Fnm = tk.StringVar(root, "SearchFile.xlsx")
+        self.Fnm = tk.StringVar(root, "data/SEARCH FILE 2019-20.xlsx")
         self.Ncol = tk.StringVar(root, "D")
         self.Vcol = tk.StringVar(root, "C")
-        self.PAcnt = tk.IntVar(root, 9)
+        self.GPAcnt = tk.IntVar(root, 6)
+        self.SPAcnt = tk.IntVar(root, 2)
+        self.RCcnt = tk.IntVar(root, 1)
+
         # Label
         tk.Label(mf, text="File Name").grid(column=1, row=1, pady=6)
         tk.Label(mf, text="Name Col").grid(column=1, row=2, pady=6)
         tk.Label(mf, text="Value Col").grid(column=3, row=2, pady=6)
-        tk.Label(mf, text="Total PA").grid(column=5, row=2, pady=6)
+        tk.Label(mf, text="Total GPA").grid(column=1, row=3, pady=6)
+        tk.Label(mf, text="Total SPA").grid(column=3, row=3, pady=6)
+        tk.Label(mf, text="Total RC").grid(column=5, row=3, pady=6)
 
         # components
         self.fname = ttk.Entry(mf, width=18, textvariable=self.Fnm)
         self.nmCol = ttk.Entry(mf, width=6, textvariable=self.Ncol)
-        self.fsch = ttk.Button(mf, text="Browse", command=lambda: self.getFile(), width=7)
+        self.fsch = ttk.Button(
+            mf, text="Browse", command=lambda: self.getFile(), width=7)
         self.valCol = ttk.Entry(mf, width=6, textvariable=self.Vcol)
-        self.PAC = ttk.Entry(mf, width=6, textvariable=self.PAcnt)
+        self.GPA = ttk.Entry(mf, width=6, textvariable=self.GPAcnt)
+        self.SPA = ttk.Entry(mf, width=6, textvariable=self.SPAcnt)
+        self.RC = ttk.Entry(mf, width=6, textvariable=self.RCcnt)
+
         self.but = ttk.Button(mf, text="Refresh", command=runCommand)
-        self.pgbar = ttk.Progressbar(mf, orient="horizontal", mode="determinate")
+        self.pgbar = ttk.Progressbar(
+            mf, orient="horizontal", mode="determinate")
         self.log = Text(mf, width=40, height=10)
 
         # Design
@@ -39,16 +50,25 @@ class GUI:
         self.fsch.grid(column=6, row=1, pady=3, columnspan=1)
         self.nmCol.grid(column=2, row=2, pady=3)
         self.valCol.grid(column=4, row=2, pady=3)
-        self.PAC.grid(column=6, row=2, pady=3)
-        self.but.grid(column=3, row=3, columnspan=2, sticky='we')
-        self.pgbar.grid(column=1, row=4, columnspan=6, sticky='we')
-        self.log.grid(column=1, row=5, columnspan=6, pady=4)
+        self.GPA.grid(column=2, row=3, pady=3)
+        self.SPA.grid(column=4, row=3, pady=3)
+        self.RC.grid(column=6, row=3, pady=3)
+
+        self.but.grid(column=3, row=4, columnspan=2, sticky='we', pady=3)
+        self.pgbar.grid(column=1, row=5, columnspan=6, sticky='we')
+        self.log.grid(column=1, row=6, columnspan=6, pady=4)
 
     def refresh(self):
         pass
 
     def get(self):
-        return [self.Fnm.get(), self.Ncol.get(), self.Vcol.get(), int(self.PAC.get())]
+        return [self.Fnm.get(),
+                self.Ncol.get(),
+                self.Vcol.get(),
+                [int(self.GPA.get()),
+                 int(self.SPA.get()),
+                 int(self.RC.get())]
+                ]
 
     def getFile(self):
         self.fname.delete(0, len(self.Fnm.get()))
@@ -57,7 +77,8 @@ class GUI:
         try:
             self.fname.insert(0, fnm)
         except:  # <- naked except is a bad idea
-           messagebox.showerror("Open Source File", "Failed to read file\n'%s'" % fnm)
+            messagebox.showerror("Open Source File",
+                                 "Failed to read file\n'%s'" % fnm)
 
 
 # Base process Class
@@ -83,7 +104,8 @@ class Proc:
             ct = 0
             self.clearDB(tblN)
             for sheet in range(0, len(dfile.sheetnames)):
-                self.log.insert('end', "\nWorking on datasheet: " + dfile.sheetnames[sheet])
+                self.log.insert(
+                    'end', "\nWorking on datasheet: " + dfile.sheetnames[sheet])
                 self.log.yview_pickplace("end")
                 self.pg['value'] = (sheet)
                 dfile._active_sheet_index = sheet
@@ -101,7 +123,8 @@ class Proc:
                                 "Search Database Refreshed!!\n Updated " + str(self.cur.lastrowid) + " rows")
         except IOError as e:
             messagebox.showwarning('Error', 'File not found!')
-            self.log.insert('end', 'Please copy the required file to continue..')
+            self.log.insert(
+                'end', 'Please copy the required file to continue..')
         self.butt['state'] = 'enabled'
 
     def conDB(self, db):
@@ -126,7 +149,8 @@ class Proc:
             que = "insert into " + tbl + " (contract, name) values (?,?)"
             self.cur.execute(que, values)
         except sql.OperationalError:
-            que = "create table " + tbl + " (contract varchar(200), name varchar(200))"
+            que = "create table " + tbl + \
+                " (contract varchar(200), name varchar(200))"
             self.cur.execute(que)
             que = "insert into " + tbl + " (contract, name) values (?,?)"
             self.cur.execute(que, values)
@@ -139,7 +163,7 @@ class App:
         self.gui = GUI(self.master, self.runit)
 
     def runit(self):
-        self.search = Proc(self.gui.get(), self.gui.pgbar, self.gui.but, self.gui.log)
+        self.search = ReDataMaker(self.gui)
         self.thread1 = threading.Thread(target=self.search.refresh)
         self.thread1.start()
 
