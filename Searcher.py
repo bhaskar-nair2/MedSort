@@ -10,7 +10,7 @@ import subprocess
 
 
 class Searcher:
-    def __init__(self, gui, put):
+    def __init__(self, gui):
         self.frame = gui.childFrame.interior
         self.data = gui.get()
         self.childFr = {}
@@ -21,7 +21,6 @@ class Searcher:
         self.maketablet = gui.maketablet
         self.remWid = gui.remWidget
         self.db = db
-        self.put = put
         self.showError = gui.showError
 
         self.tbl_name = 'indentList'
@@ -30,7 +29,7 @@ class Searcher:
 
         try:
             self.file = load_workbook(self.data[0], data_only=True)
-        except InvalidFileException as e:
+        except (InvalidFileException, FileNotFoundError) as e:
             self.showError(
                 'File Error', "No file or File Format not supported (Only supports .xlsx files)")
 
@@ -45,7 +44,7 @@ class Searcher:
             con = sql.connect(db, isolation_level=None)
             self.cur = con.cursor()
         except sql.OperationalError as e:
-            self.gui.showError('SQL ERROR', e)
+            self.showError('SQL ERROR', e)
             print(self.__class__, f"Error {e}")
         # DATA GEN
         self.progg.step(1)
@@ -73,7 +72,7 @@ class Searcher:
 
     def data_gen(self):
         flag = False
-        self.put(f"Sorting Starts at {date.today()}")
+        self.text.insert('end', f"\nSorting Starts at {date.today()} \n")
         self.clear_db()
         self.file._active_sheet_index = 0
         sheet = self.file.active
@@ -82,7 +81,6 @@ class Searcher:
         qty_lst = sheet[self.data[3]][1:]
         for _ in range(len(name_lst)):
             if _ % 50 == 0 or _ == len(name_lst):
-                self.put(f"Done about {round(_/len(name_lst)*50)}%")
                 flag = False
             if name_lst[_].value is None:
                 flag = True
@@ -94,27 +92,30 @@ class Searcher:
                      qty_lst[_].value,
                      ]
             self.insert(value)
-        self.put('Insertion Done!!')
         self.create_views()
         self.create_table()
 
     def add_found_results(self):
         today = date.today()
         self.WB = Workbook()
-        for view in views:
-            ws = self.WB.create_sheet(f"{view['table']}-{today}", 0)
+        try:
+            for view in views:
+                ws = self.WB.create_sheet(f"{view['table']}-{today}", 0)
             rs_found = self.cur.execute(
                 f"select * from {view['ref']} order by indref")
             ws.append(self.columns)
             res_list = rs_found.fetchall()
             for _ in res_list:
                 ws.append(_)
+        except sql.OperationalError as e:
+            self.showError(
+                'DB Error', "No database found. Please use File => Refresh to make search Database")
+            print(self.__class__, f"Error {e}")
 
     def search_by_primary(self):
         ws = self.WB.create_sheet("Guesses", 0)
         rs_not_found = self.cur.execute('select * from not_found;')
         rs_nf_list = rs_not_found.fetchall()
-        self.put(f"Done about 70%")
         for _ in rs_nf_list:
             ws.append(_)
             gs_list = []
@@ -132,7 +133,6 @@ class Searcher:
                        "¯\_(ツ)_/¯", "----------------------"])
 
     def add_not_found(self):
-        self.put(f"Done about 95%")
         ws = self.WB.create_sheet("Not Found", 0)
         ws.append(["Indent Ref", "Name", "Quantity"])
         rs_not_found = self.cur.execute('select * from not_found;')
@@ -145,8 +145,6 @@ class Searcher:
         filepath = './outputs/' + filename
         self.resultFilePath = filepath
         self.WB.save(filepath)
-        self.put(f':{filepath}:')
-        self.put('File Created!')
         print('Done')
         return filepath
 
@@ -179,7 +177,6 @@ class Searcher:
             pass
 
     def create_views(self):
-        self.put('Creating Views')
         views = [
             {'ref': 'mrc_view', 'table': 'rc', 'extra': True},
             {'ref': 'gpa_view', 'table': 'gpa', 'extra': False},
@@ -199,19 +196,16 @@ class Searcher:
             or i.alias like "%"||g.alias||"%";"""
             try:
                 self.cur.execute(que)
-                self.put('Views Ready')
             except sql.OperationalError as e:
                 self.drop(view['ref'], 'view')
                 self.cur.execute(que)
                 pass
             except e:
                 print(self.__class__, f"Error: {e}")
-            self.put('Views Ready')
             # Not Found
         self.not_found_view()
 
     def not_found_view(self):
-        self.put('Making Not Found')
         try:
             que = f"""CREATE view not_found as 
                 select i.indref, i.name, i.qty 
@@ -223,7 +217,6 @@ class Searcher:
         except sql.OperationalError as e:
             self.cur.execute(f"drop view not_found")
             self.cur.execute(que)
-        self.put('Not Found Ready')
 
     def drop(self, name, type):
         try:

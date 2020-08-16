@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, Menu, messagebox, filedialog
-import searchSetup as ss
+import SearchSetup as ss
 import threading
 
 from scrollFrame import VerticalScrolledFrame as scrollFrame
@@ -193,7 +193,7 @@ class App:
 
     def runit(self):
         try:
-            self.search = Searcher(self.gui, self.put)
+            self.search = Searcher(self.gui)
             self.thread1 = threading.Thread(target=self.search.orcestrator)
             self.thread1.start()
         except FileNotFoundError:
@@ -213,6 +213,5 @@ def main():
     app.mainloop()
 
 
-trash = open('trash.txt', 'r').read().split("\n")
 if __name__ == '__main__':
     main()

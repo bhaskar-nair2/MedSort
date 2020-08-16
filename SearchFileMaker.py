@@ -1,5 +1,6 @@
 from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Font
+from openpyxl.utils.exceptions import InvalidFileException
 import sqlite3 as sql
 from re import sub
 from datetime import date
@@ -11,11 +12,17 @@ class ReDataMaker:
     def __init__(self, gui):
         data = gui.get()
         file = data[0]
-        self.file = load_workbook(file)
-        self.pa_count = data[3]
         self.showError = gui.showError
         self.text = gui.log
         self.pgbar = gui.pgbar
+
+        try:
+            self.file = load_workbook(data[0], data_only=True)
+        except (InvalidFileException, FileNotFoundError) as e:
+            self.showError(
+                'File Error', "No file or File Format not supported (Only supports .xlsx files)")
+
+        self.pa_count = data[3]
 
     def refresh(self):
         self.pgbar.step(1)
@@ -25,14 +32,14 @@ class ReDataMaker:
             self.cur = con.cursor()
         except sql.OperationalError as e:
             print(f'Error in init: {e}')
-        self.text.insert("end", "Refresh Starts!")
+        self.text.insert("end", "Refresh Starts!\n")
         tbl_set = 0
         self.clear_db()
         rcTab = False
         for sheet_index in range(0, len(self.file.sheetnames)):
             self.file._active_sheet_index = sheet_index
             self.text.insert("end",
-                f"Now Inserting {self.file.sheetnames[self.file._active_sheet_index]} into Database")
+                             f"Now Inserting {self.file.sheetnames[self.file._active_sheet_index]} into Database \n")
             sheet = self.file.active
 
             if not sheet_index < self.pa_count[tbl_set]:
@@ -68,7 +75,7 @@ class ReDataMaker:
                     value.append(to_lst[_].value)
                     value.append(fr_lst[_].value)
                 self.insert(tables[tbl_set], value, rcTab)
-        # self.text.insert.put('Refresh Done!!')
+        self.text.insert.put('Refresh Done!!')
 
     def clear_db(self):
         try:
