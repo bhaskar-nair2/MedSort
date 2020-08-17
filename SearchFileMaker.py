@@ -11,18 +11,19 @@ import sys
 class ReDataMaker:
     def __init__(self, gui):
         data = gui.get()
-        file = data[0]
+        file = data['file']
         self.showError = gui.showError
         self.text = gui.log
         self.pgbar = gui.pgbar
 
         try:
-            self.file = load_workbook(data[0], data_only=True)
+            self.file = load_workbook(file, data_only=True)
         except (InvalidFileException, FileNotFoundError) as e:
             self.showError(
                 'File Error', "No file or File Format not supported (Only supports .xlsx files)")
 
-        self.pa_count = data[3]
+        self.pa_count = data['PASheets']
+        self.file_cols = data['FileCols']
 
     def refresh(self):
         self.pgbar.step(1)
@@ -50,16 +51,16 @@ class ReDataMaker:
                     break
             if(tables[tbl_set] == 'rcSearchList'):
                 rcTab = True
-            contract_lst = sheet['C'][1:]
-            name_lst = sheet['D'][1:]
-            unit_lst = sheet['E'][1:]
-            coy_lst = sheet['F'][1:]
-            rate_lst = sheet['G'][1:]
-            gst_lst = sheet['J'][1:]
-            supplier_lst = sheet['L'][1:]
+            contract_lst = sheet[self.file_cols[0]][1:]
+            name_lst = sheet[self.file_cols[1]][1:]
+            unit_lst = sheet[self.file_cols[2]][1:]
+            coy_lst = sheet[self.file_cols[3]][1:]
+            rate_lst = sheet[self.file_cols[4]][1:]
+            gst_lst = sheet[self.file_cols[5]][1:]
+            supplier_lst = sheet[self.file_cols[6]][1:]
             if(rcTab):
-                to_lst = sheet['M'][1:]
-                fr_lst = sheet['N'][1:]
+                to_lst = sheet[self.file_cols[7]][1:]
+                fr_lst = sheet[self.file_cols[8]][1:]
             for _ in range(len(contract_lst)):
                 if contract_lst[_].value is None:
                     break
@@ -75,7 +76,7 @@ class ReDataMaker:
                     value.append(to_lst[_].value)
                     value.append(fr_lst[_].value)
                 self.insert(tables[tbl_set], value, rcTab)
-        self.text.insert.put('Refresh Done!!')
+        self.text.insert('end','Refresh Done!!')
 
     def clear_db(self):
         try:
