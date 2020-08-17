@@ -74,6 +74,7 @@ class Searcher:
         flag = False
         self.text.insert('end', f"\nSorting Starts at {date.today()} \n")
         self.clear_db()
+        self.create_table()
         self.file._active_sheet_index = 0
         sheet = self.file.active
         indref_lst = sheet[self.data[1]][1:]
@@ -93,7 +94,6 @@ class Searcher:
                      ]
             self.insert(value)
         self.create_views()
-        self.create_table()
 
     def add_found_results(self):
         today = date.today()
@@ -101,15 +101,16 @@ class Searcher:
         try:
             for view in views:
                 ws = self.WB.create_sheet(f"{view['table']}-{today}", 0)
-            rs_found = self.cur.execute(
-                f"select * from {view['ref']} order by indref")
-            ws.append(self.columns)
-            res_list = rs_found.fetchall()
-            for _ in res_list:
-                ws.append(_)
+                rs_found = self.cur.execute(
+                    f"select * from {view['ref']} order by indref")
+                ws.append(self.columns)
+                res_list = rs_found.fetchall()
+                for _ in res_list:
+                    print(_)
+                    ws.append(_)
         except sql.OperationalError as e:
             self.showError(
-                'DB Error', "No database found. Please use File => Refresh to make search Database")
+                'Write Error', "Error Writing to file. Run as administrator?")
             print(self.__class__, f"Error {e}")
 
     def search_by_primary(self):
@@ -159,7 +160,7 @@ class Searcher:
         try:
             self.cur.execute(que, values)
         except sql.OperationalError as e:
-            print(self.__class__, f"Error{e}")
+            print(self.__class__, f"Error {e}")
 
     def clear_db(self):
         que = f"delete from {self.tbl_name}"
